@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>청년층 제주 관광 동향 대시보드</title>
+<link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="viz-root">
+<div id="loading" class="loading">데이터 불러오는 중… (data/data.js, 약 18MB)</div>
+
+<!-- 헤더 -->
+<header class="card head">
+  <div>
+    <h1>청년층 제주 관광 동향</h1>
+    <p class="sub">청년층은 제주에서 어떤 여행을 하고 있을까? — 20대 방문 추이, 지역별 특성, 검색어·후기의 관심 주제</p>
+    <p class="meta"><b>분석 기간</b> <span id="periodText">-</span> <span class="sep">|</span>
+      <b>데이터 출처</b> 사용자 제공 자료(제주관광빅데이터플랫폼·비짓제주 추출 파일 7종) · 온라인 후기: <span class="warn-text">미수집</span></p>
+    <p class="meta"><b>분석 대상</b> 20대 방문객(연령대별 방문 데이터) · 연령 정보가 없는 지역·장소·검색어 데이터는 <b>전체 관광객</b> 특성으로 해석</p>
+  </div>
+</header>
+
+<!-- 필터 -->
+<section class="card filters" aria-label="필터">
+  <div class="frow">
+    <div class="fld"><span>기간 시작</span><div class="mp"><button type="button" class="mp-btn" aria-haspopup="dialog"></button></div><select id="fStart" hidden></select></div>
+    <div class="fld"><span>기간 종료</span><div class="mp"><button type="button" class="mp-btn" aria-haspopup="dialog"></button></div><select id="fEnd" hidden></select></div>
+    <label>연령대 <select id="fAge"></select></label>
+    <label>성별 <select id="fSex"><option value="">전체</option><option value="M">남성(M)</option><option value="W">여성(W)</option></select></label>
+    <label>지역 <select id="fRegion"></select></label>
+    <button id="fReset" type="button">초기화</button>
+  </div>
+  <p class="note" id="filterNote"></p>
+</section>
+
+<!-- 핵심 지표 -->
+<section class="kpis">
+  <div class="card kpi">
+    <div><h2 id="k1Title">20대 방문 규모</h2><div class="big" id="k1">-</div><div class="cap" id="k1cap"></div></div></div>
+  <div class="card kpi">
+    <div><h2>전년 동월 대비 증감률</h2><div class="big" id="k2">-</div><div class="cap" id="k2cap"></div></div></div>
+  <div class="card kpi">
+    <div><h2 id="k3Title">20대 비중</h2><div class="big" id="k3">-</div><div class="cap" id="k3cap"></div></div></div>
+  <div class="card kpi ref">
+    <div><h2>참고: 전체 입도 관광객</h2><div class="big" id="k4">-</div><div class="cap" id="k4cap"></div></div></div>
+</section>
+
+<!-- 방문 추이 -->
+<section class="card">
+  <div class="title"><div><h2>방문 추이</h2><p class="sub" id="trendSub">월별·연도별 20대 방문객 수 (단위: 명)</p></div></div>
+  <div id="trendChart" class="chart" style="height:340px"></div>
+  <details><summary>상세 표 (월별 실제 수치)</summary><div id="trendTable" class="tablewrap"></div></details>
+  <p class="note">출처: 제주 연령대별 방문.xlsx (기준연월·성별·연령별 방문객수, 제주특별자치도 단위). 지역 필터는 이 데이터에 적용되지 않습니다(읍면동 구분 없음).</p>
+</section>
+
+<!-- 지역별 방문 / 인기 장소 -->
+<div class="two">
+<section class="card">
+  <div class="title"><div><h2>지역별 방문</h2><p class="sub">읍면동별 방문객 수 (내국인+외국인, 전체 관광객 · 연령 구분 없음, 단위: 명)</p></div></div>
+  <div class="mapwrap">
+    <div id="map" class="map"></div>
+    <div id="regionBar" class="chart" style="height:330px"></div>
+  </div>
+  <p class="note" id="mapNote"></p>
+  <details><summary>상세 표 (읍면동별 실제 수치)</summary><div id="regionTable" class="tablewrap"></div></details>
+</section>
+
+<section class="card">
+  <div class="title"><div><h2>인기 장소</h2><p class="sub" id="placeSub">장소별 관광객 도착 수 TOP 10 (내비게이션 도착 기준, 단위: 건)</p></div></div>
+  <div class="frow small">
+    <label>지표 <select id="pMetric"><option value="0">관광객 도착 수</option><option value="1">도민 도착 수</option><option value="2">도착건수(전체)</option></select></label>
+    <label>카테고리(3단계) <select id="pCat"></select></label>
+  </div>
+  <div id="placeBar" class="chart" style="height:420px"></div>
+  <details><summary>상세 표 (TOP 50 실제 수치)</summary><div id="placeTable" class="tablewrap"></div></details>
+  <p class="note">출처: 제주 지역별 인기 장소.xlsx. 장소 단위 = 목적지명+읍면동+카테고리(같은 이름이라도 읍면동·카테고리가 다르면 별도 장소). 공항·주차장·렌터카 등 이동 시설도 원자료 그대로 포함합니다.</p>
+</section>
+</div>
+
+<!-- 검색어 / 후기 -->
+<div class="two">
+<section class="card">
+  <div class="title"><div><h2>관광 검색어</h2><p class="sub" id="kwSub">비짓제주 검색 대상(장소명) 워드클라우드 · 검색 수치 합계</p></div></div>
+  <div class="frow small">
+    <label>분류명 <select id="kwCat"></select></label>
+    <label>보기 <select id="kwView"><option value="cloud">워드클라우드</option><option value="bar">빈도 막대그래프</option></select></label>
+  </div>
+  <div id="kwChart" class="chart" style="height:460px"></div>
+  <details open><summary>키워드 빈도 표 (TOP 30)</summary><div id="kwTable" class="tablewrap"></div></details>
+  <p class="note" id="kwNote"></p>
+</section>
+
+<section class="card">
+  <div class="title"><div><h2>온라인 후기</h2><p class="sub" id="rvSub">주요 활동 · 만족 요인 · 불편 사항</p></div></div>
+  <div class="frow small" id="rvControls" hidden>
+    <label>글 범위 <select id="rvScope"><option value="all">수집된 전체 글</option><option value="youth">20대 관련 표현이 있는 글</option></select></label>
+    <label>광고·협찬 <select id="rvAd"><option value="include">포함</option><option value="exclude">표현 있는 글 제외</option></select></label>
+  </div>
+  <div class="reviews" id="rvCols">
+    <div class="rv"><h3>주요 활동</h3><p class="empty">수집된 후기 데이터 없음</p></div>
+    <div class="rv"><h3>만족 요인</h3><p class="empty">수집된 후기 데이터 없음</p></div>
+    <div class="rv"><h3>불편 사항</h3><p class="empty">수집된 후기 데이터 없음</p></div>
+  </div>
+  <div id="rvSamples"></div>
+  <details id="rvRules" hidden><summary>주제 분류 규칙 (정규식 사전)</summary><div id="rvRuleTable" class="tablewrap"></div></details>
+  <p class="note warn-text" id="rvNote">온라인 후기 데이터(data/reviews.js)가 아직 없습니다. 후기 주제는 임의로 작성하지 않았으며, <b>추가 확인(수집) 필요</b> 항목입니다. 수집 방법은 README의 '온라인 후기 수집'을 참고하세요.</p>
+</section>
+</div>
+
+<!-- 분석 결과 -->
+<section class="card">
+  <div class="title"><div><h2>분석 결과 요약</h2><p class="sub">현재 필터 기준으로 자동 계산된 사실과, 이를 바탕으로 한 해석·확인 사항·제안</p></div></div>
+  <div class="summary">
+    <div class="sbox s-fact"><div class="shead"><span class="sico" aria-hidden="true">✓</span><h3>확인된 사실</h3><span class="scount" id="sFactsN"></span></div><p class="sdesc">데이터에서 직접 계산한 값</p><ul id="sFacts"></ul></div>
+    <div class="sbox s-hypo"><div class="shead"><span class="sico" aria-hidden="true">≈</span><h3>해석 및 가설</h3><span class="scount" id="sHypoN"></span></div><p class="sdesc">데이터로 검증되지 않은 해석</p><ul id="sHypo"></ul></div>
+    <div class="sbox s-check"><div class="shead"><span class="sico" aria-hidden="true">?</span><h3>추가 확인 사항</h3><span class="scount" id="sCheckN"></span></div><p class="sdesc">결론 전에 확인이 필요한 것</p><ul id="sCheck"></ul></div>
+    <div class="sbox s-act"><div class="shead"><span class="sico" aria-hidden="true">→</span><h3>실행 제안</h3><span class="scount" id="sActN"></span></div><p class="sdesc">검증 후 적용을 검토할 제안</p><ul id="sAct"></ul></div>
+  </div>
+</section>
+
+<!-- 데이터 설명 -->
+<section class="card">
+  <div class="title"><div><h2>데이터 설명 · 집계 기준</h2><p class="sub">파일별 컬럼·기간·단위·집계 기준과 품질 점검 결과 (data.js 생성 시 원본에서 계산)</p></div></div>
+  <div id="dataNotes" class="tablewrap"></div>
+</section>
+</div>
+
+<script src="config.js"></script>
+<script src="vendor/echarts.min.js"></script>
+<script src="vendor/echarts-wordcloud.min.js"></script>
+<script src="vendor/leaflet/leaflet.js"></script>
+<script src="data/data.js"></script>
+<script src="data/reviews.js" onerror="window.REVIEW_DATA=null"></script>
+<script src="app.js"></script>
+</body>
+</html>
